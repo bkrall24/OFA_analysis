@@ -315,12 +315,15 @@ def save_all_to_excel(fp, f):
                 else:
                     k2 = k
 
-                ref.to_excel(writer, sheet_name = k2 + " Total")
-                f['tables'][k].to_excel(writer, sheet_name = k2 + " Intervals")
+                ref.to_excel(writer, sheet_name = k2 + " Total", index = False)
+                writer.save()
+                f['tables'][k].to_excel(writer, sheet_name = k2 + " Intervals", index = False)
+                writer.save()
         
 
             f['meta'] = f['meta'][['Subject'] + [col for col in f['meta'].columns if col != 'Subject']]      
             f['meta'].to_excel(writer, sheet_name = 'Metadata')
+            writer.save()
         
     except:
         st.header("Error occurred while attempting to save - Delete the excel file and ask Becca")
