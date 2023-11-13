@@ -1,6 +1,10 @@
 import pandas as pd
 import numpy as np
 import streamlit as st
+import xlsxwriter
+import io
+
+
 
 def parse_dict(txt):
     data = [x for x in txt if ':' in x]
@@ -301,38 +305,42 @@ def reformat_totals(df):
     return df2
 
 
-def save_all_to_excel(fp, f):
+# def save_all_to_excel(fp, f):
 
-# try:
-    with pd.ExcelWriter(fp, engine="openpyxl") as writer: 
+#     try:
+#         buffer = io.BytesIO()
+#         with pd.ExcelWriter(buffer, engine="xlsxwriter") as writer: 
         
-        for k in f['totals'].keys():
-            
-            ref = reformat_totals(f['totals'][k])
-            
-            if len(k) > 21:
-                k2 = k[:21]
-            else:
-                k2 = k
 
-            ref.to_excel(writer, sheet_name = k2 + " Total", index = False)
-            writer.save()
-            f['tables'][k].to_excel(writer, sheet_name = k2 + " Intervals", index = False)
-            writer.save()
+#             for k in f['totals'].keys():
+                
+#                 ref = reformat_totals(f['totals'][k])
+                
+#                 if len(k) > 21:
+#                     k2 = k[:21]
+#                 else:
+#                     k2 = k
+
+#                 ref.to_excel(writer, sheet_name = k2 + " Total")
+#                 f['tables'][k].to_excel(writer, sheet_name = k2 + " Intervals")
+
+#             f['meta'] = f['meta'][['Subject'] + [col for col in f['meta'].columns if col != 'Subject']]      
+#             f['meta'].to_excel(writer, sheet_name = 'Metadata')
+
+
+
+#         st.download_button(
+#             label="Download Excel workbook",
+#             data= buffer,
+#             file_name="workbook.xlsx",
+#             mime="application/vnd.ms-excel"
+#         )
+
+
+#     except:
+#         st.header("Error occurred while attempting to save - Delete the excel file and ask Becca")
+
     
-
-        f['meta'] = f['meta'][['Subject'] + [col for col in f['meta'].columns if col != 'Subject']]      
-        f['meta'].to_excel(writer, sheet_name = 'Metadata')
-        writer.save()
-        
-    # except:
-    #     st.header("Error occurred while attempting to save - Delete the excel file and ask Becca")
-
-    
-
-
-
-
 
 st.title('Open Field Activity Data Processing')
 sys = st.multiselect(label = 'Choose the OFA System', options = ['New (Rm 8)', 'Old (Rm 7)'])
@@ -406,27 +414,65 @@ else:
 
 
 if new_dat is not None and old_dat is not None:
-    combined = combine_data_dicts(old_dat, new_dat)
-    path1 = st.text_input(label="Enter folder path to save")
-    filename1 = st.text_input(label = "Enter filename")
-    fp1 = path1 +"/"+filename1+".xlsx"
+    dat = combine_data_dicts(old_dat, new_dat)
+    # path1 = st.text_input(label="Enter folder path to save")
+    # filename1 = st.text_input(label = "Enter filename")
+    # fp1 = path1 +"/"+filename1+".xlsx"
 
-    if len(filename1) > 0 and len(path1) > 0:
-        st.button(label = 'Save Merged Data', on_click = save_all_to_excel, args = (fp1, combined))
+    # if len(filename1) > 0 and len(path1) > 0:
+    #     st.button(label = 'Save Merged Data', on_click = save_all_to_excel, args = (fp1, combined))
 
-
+    
 elif new_dat is not None:
-    path2 = st.text_input(label="Enter folder path to save")
-    filename2 = st.text_input(label = "Enter filename")
-    fp2 = path2 +'/'+filename2+'.xlsx'
+    dat = new_dat
+    # path2 = st.text_input(label="Enter folder path to save")
+    # filename2 = st.text_input(label = "Enter filename")
+    # fp2 = path2 +'/'+filename2+'.xlsx'
 
-    if len(filename2) > 0 and len(path2) > 0:
-        st.button(label = 'Save New System Data', on_click = save_all_to_excel, args = (fp2, new_dat))
+    # if len(filename2) > 0 and len(path2) > 0:
+    #     st.button(label = 'Save New System Data', on_click = save_all_to_excel, args = (fp2, new_dat))
 
 elif old_dat is not None:
-    path3 = st.text_input(label="Enter folder path to save")
-    filename3 = st.text_input(label = "Enter filename")
-    fp3 = path3+'/'+filename3 +'.xlsx'
+    dat = old_dat
+    # path3 = st.text_input(label="Enter folder path to save")
+    # filename3 = st.text_input(label = "Enter filename")
+    # fp3 = path3+'/'+filename3 +'.xlsx'
 
-    if len(filename3) > 0 and len(path3) > 0:
-        st.button(label = 'Save Old System Data', on_click = save_all_to_excel, args = (fp3, old_dat))
+    # if len(filename3) > 0 and len(path3) > 0:
+    #     st.button(label = 'Save Old System Data', on_click = save_all_to_excel, args = (fp3, old_dat))
+else:
+    dat = None
+
+# try:
+
+if dat is not None:
+    buffer = io.BytesIO()
+    with pd.ExcelWriter(buffer, engine="xlsxwriter") as writer: 
+
+
+        for k in dat['totals'].keys():
+            
+            ref = reformat_totals(dat['totals'][k])
+            
+            if len(k) > 21:
+                k2 = k[:21]
+            else:
+                k2 = k
+
+            ref.to_excel(writer, sheet_name = k2 + " Total")
+            dat['tables'][k].to_excel(writer, sheet_name = k2 + " Intervals")
+
+        dat['meta'] = dat['meta'][['Subject'] + [col for col in dat['meta'].columns if col != 'Subject']]      
+        dat['meta'].to_excel(writer, sheet_name = 'Metadata')
+
+
+    st.download_button(
+        label="Download Excel workbook",
+        data= buffer,
+        file_name="workbook.xlsx",
+        mime="application/vnd.ms-excel"
+    )
+
+
+# except:
+#     st.header("Error occurred while attempting to save - Delete the excel file and ask Becca")
