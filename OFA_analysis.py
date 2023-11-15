@@ -277,20 +277,21 @@ def reformat_totals(df):
         groups = np.unique(df.index)
         test = {}
         for g in groups:
-            test[g] = np.array(df.loc[g])
-        
+            test[g] = np.array(df.loc[g]) if isinstance(df.loc[g], pd.Series) else np.array([df.loc[g]])
+            
         # if max([len(k.shape) for  k in test.values()]) == 0:
         #     df2 = pd.DataFrame(test, index = [0])
         # else:
         #     df2 = pd.DataFrame(test)
 
-        max_length = max([len(k) for k in test.values()])
+        max_length = max(len(k) if isinstance(k, np.ndarray) else 1 for k in test.values())
 
         # Pad shorter arrays with NaN values
         for g in groups:
-            test[g] = np.pad(test[g], (0, max_length - len(test[g])), constant_values=np.nan)
+            # test[g] = np.pad(test[g], (0, max_length - len(test[g])), constant_values=-1)
+            test[g] = np.concatenate([test[g], [np.nan] * (max_length - len(test[g]))])
 
-        df2 = pd.DataFrame(test, index=[0])
+        df2 = pd.DataFrame(test)
 
     else:
 
@@ -301,12 +302,13 @@ def reformat_totals(df):
         for session in df.index:
             test = {}
             for g in groups:
-                test[g] = np.array(df.loc[session, g])
+                test[g] = np.array(df.loc[session, g]) if isinstance(df.loc[session, g], pd.Series) else np.array([df.loc[session, g]])
             
-            max_length = max([len(k) for k in test.values()])
+            
+            max_length = max(len(k) if isinstance(k, np.ndarray) else 1 for k in test.values())
             for g in groups:
-                test[g] = np.pad(test[g], (0, max_length - len(test[g])), constant_values=np.nan)
-
+                # test[g] = np.pad(test[g], (0, max_length - len(test[g])), constant_values=-1)
+                test[g] = np.concatenate([test[g], [np.nan] * (max_length - len(test[g]))])
 
             mm =  pd.MultiIndex.from_arrays([[session] * len(groups), groups], names = ['Session', 'Group'])
             df3 = pd.DataFrame(test)
