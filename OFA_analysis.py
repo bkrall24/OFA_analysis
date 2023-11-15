@@ -51,6 +51,7 @@ def cast_numeric(data, keys):
         else:
             data[c] = pd.to_numeric(data[c], errors= 'coerce')
 
+
 def parse_summary(example_file):
     # with open(example_file, 'r') as file:
     #     lines = file.readlines()
@@ -98,6 +99,7 @@ def parse_summary(example_file):
     return result, meta_dict, totals
 
 def compile_measurement(measurement, results, metas):
+
     columns = pd.MultiIndex(levels=[[], []], codes=[[], []], names=[ 'Group', 'Subject'])
     df = pd.DataFrame(columns=columns)
 
@@ -299,7 +301,8 @@ def reformat_totals(df):
             df3 = pd.DataFrame(test)
             df3.columns = mm
             df2 = pd.concat([df2, df3], axis = 1)
-    
+
+        df2.sort_index(axis = 1, inplace = True)
     
     return df2
 
