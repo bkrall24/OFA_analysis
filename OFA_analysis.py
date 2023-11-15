@@ -279,11 +279,18 @@ def reformat_totals(df):
         for g in groups:
             test[g] = np.array(df.loc[g])
         
-        if max([len(k.shape) for  k in test.values()]) == 0:
-            df2 = pd.DataFrame(test, index = [0])
-        else:
-            df2 = pd.DataFrame(test)
+        # if max([len(k.shape) for  k in test.values()]) == 0:
+        #     df2 = pd.DataFrame(test, index = [0])
+        # else:
+        #     df2 = pd.DataFrame(test)
 
+        max_length = max(len(k) for k in test.values())
+
+        # Pad shorter arrays with NaN values
+        for g in groups:
+            test[g] = np.pad(test[g], (0, max_length - len(test[g])), constant_values=np.nan)
+
+        df2 = pd.DataFrame(test, index=[0])
 
     else:
 
@@ -296,7 +303,11 @@ def reformat_totals(df):
             for g in groups:
                 test[g] = np.array(df.loc[session, g])
             
-            
+            max_length = max(len(k) for k in test.values())
+            for g in groups:
+                test[g] = np.pad(test[g], (0, max_length - len(test[g])), constant_values=np.nan)
+
+
             mm =  pd.MultiIndex.from_arrays([[session] * len(groups), groups], names = ['Session', 'Group'])
             df3 = pd.DataFrame(test)
             df3.columns = mm
