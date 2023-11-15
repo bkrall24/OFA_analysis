@@ -284,7 +284,7 @@ def reformat_totals(df):
         # else:
         #     df2 = pd.DataFrame(test)
 
-        max_length = max(len(k) for k in test.values())
+        max_length = max([len(k) for k in test.values()])
 
         # Pad shorter arrays with NaN values
         for g in groups:
@@ -303,7 +303,7 @@ def reformat_totals(df):
             for g in groups:
                 test[g] = np.array(df.loc[session, g])
             
-            max_length = max(len(k) for k in test.values())
+            max_length = max([len(k) for k in test.values()])
             for g in groups:
                 test[g] = np.pad(test[g], (0, max_length - len(test[g])), constant_values=np.nan)
 
