@@ -1,6 +1,5 @@
 streamlit==1.28.1 
 pandas==2.1.0  
 numpy==1.25.2
-re
 xlsxwriter
 openpyxl 
