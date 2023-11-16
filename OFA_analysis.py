@@ -427,7 +427,7 @@ st.title('Open Field Activity Data Processing')
 sys = st.multiselect(label = 'Choose the OFA System', options = ['New (Rm 8)', 'Old (Rm 7)'])
 
 if 'Old (Rm 7)' in sys:
-    mult_old = st.toggle(label = 'Multiple Sessions in Old (Rm 7) files?')
+    mult_old = st.toggle(label = 'Two Sessions in Old (Rm 7) files?')
 
     if mult_old:
         session1_files = st.file_uploader(label = "Select Session 1 Files", accept_multiple_files= True)
@@ -435,7 +435,7 @@ if 'Old (Rm 7)' in sys:
             d1 = compile_summary(session1_files)
             d1 = match_old_to_new(d1)
         else:
-            st.text('Choose session 1 summary files, or deselect multiple sessions')
+            st.text('Choose session 1 summary files, or deselect two sessions')
             d1 = None
             
         session2_files = st.file_uploader(label = "Select Session 2 Files", accept_multiple_files= True)
@@ -443,7 +443,7 @@ if 'Old (Rm 7)' in sys:
             d2 = compile_summary(session2_files)
             d2 = match_old_to_new(d2)
         else:
-            st.text('Choose session 2 summary files, or deselect multiple sessions')
+            st.text('Choose session 2 summary files, or deselect two sessions')
             d2 = None
 
         if d1 is not None and d2 is not None:
@@ -464,7 +464,7 @@ else:
     old_dat = None
 
 if 'New (Rm 8)' in sys:
-    mult_new = st.toggle(label = 'Multiple Sessions in New (Rm 8) file?')
+    mult_new = st.toggle(label = 'Two Sessions in New (Rm 8) file?')
     excel_file = st.file_uploader(label = "Select Excel File for New (Rm 8) analysis", accept_multiple_files= False)
 
     if excel_file is not None:
