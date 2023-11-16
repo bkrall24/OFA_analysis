@@ -177,7 +177,7 @@ def combine_sessions(a, b):
 def compile_excel(d):
     pm = [ 'Ambulatory Distance', 'Ambulatory Time', 'Ambulatory Counts', 'Vertical Counts',
                 'Vertical Time',  'Stereotypic Time', 'Stereotypic Counts', 'Resting Time', 'Jump Counts', 'Jump Time',
-                'Ambulatory Episodes Average Speed',  'Ambulatory Episodes']
+                'Ambulatory Episodes Average Speed',  'Ambulatory Episodes', 'Ambulatory Episodes Total Speed']
 
     meta_columns = [x for x in d.columns if x.split(' Bin ')[0] not in pm]
     data_columns  = [x for x in d.columns if x.split(' Bin ')[0] in pm]
@@ -232,7 +232,7 @@ def match_old_to_new(s):
 
     match_key = {'Distance Traveled': 'Ambulatory Distance', 'Time Ambulatory': 'Ambulatory Time', 
                 'Ambulatory Count': 'Ambulatory Counts', 'Vertical Count': 'Vertical Counts',
-                'Time Vertical': 'Vertical Time', 'Time Stereotypic': 'Stereotypic Time', 'Stereotypic Count' : 'Stereotypics Counts',
+                'Time Vertical': 'Vertical Time', 'Time Stereotypic': 'Stereotypic Time', 'Stereotypic Count' : 'Stereotypic Counts',
                 'Time Resting': 'Resting Time', 'Jump Count': 'Jump Counts', 'Time Jumping': 'Jump Time',
                 'Average Velocity': 'Ambulatory Episodes Average Speed', 'Ambulatory Episodes': 'Ambulatory Episodes'}
 
