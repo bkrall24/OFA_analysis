@@ -2,12 +2,20 @@ import pandas as pd
 import numpy as np
 import streamlit as st
 import io
-
+import re
 
 
 def parse_dict(txt):
     data = [x for x in txt if ':' in x]
     dict = {x.split(':',1)[0].strip(): x.split(':',1)[1].strip() for x in data}
+
+    if "Subject ID" in dict.keys():
+        sid = dict['Subject ID']
+        pattern = re.compile(r'^C(\d+)M(\d+)$')
+        match = pattern.match(sid)
+        if match:
+            dict['Subject ID']= int(match.group(2))
+        
 
     return dict
 
@@ -16,7 +24,6 @@ def match_and_rename(result, keys):
         characters_to_match = set(char for char in c if char != '.' and char != 's')
         
         new_col = [x for x in keys if characters_to_match.issubset(set(char for char in x))]
-        
         
         if len(new_col) > 0:
             result.rename(columns={c: new_col[0]}, inplace=True)
@@ -60,7 +67,6 @@ def parse_summary(example_file):
     meta_data = lines[:36]
     meta_dict = parse_dict(meta_data)
 
-
     tablular_data = lines[37:]
     
     stops = [x for x,y in enumerate(tablular_data) if len(y) == 2]
@@ -94,7 +100,6 @@ def parse_summary(example_file):
     cast_numeric(result, result.columns)
     cast_numeric(totals, totals.keys())
 
-    
     
     return result, meta_dict, totals
 
@@ -134,6 +139,7 @@ def compile_summary(files):
         results.append(r)
 
     all_meta = pd.DataFrame(metas)
+
     all_totals = pd.DataFrame(totals) 
     all_totals.index= pd.MultiIndex.from_arrays([all_meta['Group ID'].astype(int), all_meta['Subject ID']])
 
