@@ -118,7 +118,7 @@ def table_to_dict(table):
 
     table_dict = {}
     for col in table.columns:
-        table_dict[col] = table[col]
+        table_dict[col] = table[col].transpose()
     
     return table_dict
 
@@ -174,7 +174,6 @@ def compile_excel(d):
                 'Ambulatory Episodes Average Speed',  'Ambulatory Episodes']
 
     meta_columns = [x for x in d.columns if x.split(' Bin ')[0] not in pm]
-   
     data_columns  = [x for x in d.columns if x.split(' Bin ')[0] in pm]
     
 
@@ -211,7 +210,7 @@ def compile_excel(d):
         dm = dm.sort_index(axis = 1)
 
         tbls[m] = dm
-        totals[m] = dm.sum()
+        totals[m] = dm.sum().transpose()
 
 
     totals.sort_index()
@@ -257,16 +256,25 @@ def combine_data_dicts(s, c):
     combined_tables = {}
     combined_totals = {}
     combined_keys = set(s['tables'].keys()).intersection(c['tables'].keys())
+    
 
     for k in combined_keys:
         combined_tables[k] = pd.concat([s['tables'][k], c['tables'][k]], axis = 1).sort_index(axis =1)
-        combined_totals[k]= pd.concat([s['totals'][k], c['totals'][k]], axis = 1).sort_index(axis =1)
+
+        if len(s['totals'][k].shape) == 1 and len(c['totals'][k].shape) == 1:
+            combined_totals[k] = pd.concat([s['totals'][k], c['totals'][k]]).sort_index()
+        else:
+            combined_totals[k]= pd.concat([s['totals'][k], c['totals'][k]], axis = 1).sort_index(axis =1)
+        # st.text(combined_tables[k])
 
 
     combined_meta = pd.concat([s['meta'], c['meta']]).reset_index(drop = True)
-
     combined_dict = {'tables': combined_tables, 'totals': combined_totals, 'meta': combined_meta}
-    return combined_dict
+
+    subject_1 = s['meta']['Subject'].values
+    subject_2 = c['meta']['Subject'].values
+
+    return combined_dict, subject_1, subject_2
 
 
 def reformat_totals(df):
@@ -294,7 +302,6 @@ def reformat_totals(df):
         df2 = pd.DataFrame(test)
 
     else:
-
         df = df.droplevel(1, axis = 1)
         groups = df.columns.unique()
         df2 = pd.DataFrame()
@@ -321,42 +328,94 @@ def reformat_totals(df):
     return df2
 
 
-# def save_all_to_excel(fp, f):
 
-#     try:
-#         buffer = io.BytesIO()
-#         with pd.ExcelWriter(buffer, engine="xlsxwriter") as writer: 
-        
+def center_excel_sheet(writer, sheet_name, shape):
+    workbook  = writer.book
+    worksheet = writer.sheets[sheet_name]
 
-#             for k in f['totals'].keys():
-                
-#                 ref = reformat_totals(f['totals'][k])
-                
-#                 if len(k) > 21:
-#                     k2 = k[:21]
-#                 else:
-#                     k2 = k
+    # Get the dimensions of the DataFrame
+    num_rows, num_cols = shape
 
-#                 ref.to_excel(writer, sheet_name = k2 + " Total")
-#                 f['tables'][k].to_excel(writer, sheet_name = k2 + " Intervals")
+    # Create a cell format with center alignment
+    center_alignment = workbook.add_format({'align': 'center', 'valign': 'vcenter'})
 
-#             f['meta'] = f['meta'][['Subject'] + [col for col in f['meta'].columns if col != 'Subject']]      
-#             f['meta'].to_excel(writer, sheet_name = 'Metadata')
+    # Apply the cell format to the entire sheet
+    worksheet.set_column(0, num_cols - 1, cell_format=center_alignment)
 
 
 
-#         st.download_button(
-#             label="Download Excel workbook",
-#             data= buffer,
-#             file_name="workbook.xlsx",
-#             mime="application/vnd.ms-excel"
-#         )
+def center_with_lines_and_color(writer, sheet_name, df, s1, s2):
+    workbook  = writer.book
+    worksheet = writer.sheets[sheet_name]
+
+    num_rows, num_cols = df.shape
+    center_alignment = workbook.add_format({'align': 'center', 'valign': 'vcenter'})
+    worksheet.set_column(0, num_cols - 1, cell_format= center_alignment)
+
+    border_format = workbook.add_format({'left': 1, 'border_color': 'black', 'align': 'center', 'valign': 'vcenter'})
+    blue_format = workbook.add_format({'bg_color': '#E6F7FF', 'bold': True, 'align': 'center', 'valign': 'vcenter', 'border': 1})
+    orange_format = workbook.add_format({'bg_color': '#FFEFD5', 'bold': True, 'align': 'center', 'valign': 'vcenter', 'border':1})
+
+    ch = np.diff(df.columns.get_level_values(0))
+    ch = np.insert(ch, 0, 0)
+    ch = np.append(ch, 1000)
+    bold_lines = np.argwhere(ch).flatten().tolist()
+
+    for l in bold_lines:
+        worksheet.set_column(l+1, l+1, cell_format = border_format)
+
+    subject_col_index = df.columns.get_level_values('Subject')
+
+    # Iterate through the 'Subject' level and apply formatting based on conditions
+    for ind,sub in enumerate(subject_col_index):
+
+        if sub in s1:
+            worksheet.write(1, ind+1, sub, blue_format)
+            
+        if sub in s2:
+            worksheet.write(1, ind+1,  sub, orange_format)
+
+# def add_lines_sheet(writer, sheet_name, df):
+#     workbook  = writer.book
+#     worksheet = writer.sheets[sheet_name]
+#     border_format = workbook.add_format({'left': 1, 'border_color': 'black'})
+
+#     ch = np.diff(df.columns.get_level_values(0))
+#     ch = np.insert(ch, 0, 0)
+#     ch = np.append(ch, 1000)
+#     bold_lines = np.argwhere(ch) + 1
+
+#     for l in bold_lines:
+#         worksheet.set_column(l[0], l[0], cell_format = border_format)
 
 
-#     except:
-#         st.header("Error occurred while attempting to save - Delete the excel file and ask Becca")
+# def color_code_by_room(writer, sheet_name, df, s1, s2):
 
+#     workbook  = writer.book
+#     worksheet = writer.sheets[sheet_name]
+
+#     # Get the column index for the 'Subject' level
+#     subject_col_index = df.columns.get_level_values('Subject')
+#     # st.text(s2)
+#     # Define formats for different colors
+#     blue_format = workbook.add_format({'bg_color': '#99CCFF', 'bold': True})
+#     orange_format = workbook.add_format({'bg_color': '#FF9900', 'bold': True})
+
+#     # Iterate through the 'Subject' level and apply formatting based on conditions
+#     for ind,sub in enumerate(subject_col_index):
+#         # cell_value = df.iloc[1, col]
+#         # st.text(cell_value)
+     
+#         if sub in s1:
+#             worksheet.write(1, ind+1, sub, blue_format)
+            
+#         if sub in s2:
+#             worksheet.write(1, ind+1,  sub, orange_format)
     
+       
+
+       
+                   
 
 st.title('Open Field Activity Data Processing')
 sys = st.multiselect(label = 'Choose the OFA System', options = ['New (Rm 8)', 'Old (Rm 7)'])
@@ -419,7 +478,9 @@ if 'New (Rm 8)' in sys:
             b = compile_excel(d2)
             new_dat = combine_sessions(a, b)
         else:
+            excel_dat = excel_dat.dropna(axis = 1, how = 'all')
             new_dat = compile_excel(excel_dat)
+            
     
     else:
         st.text('Choose files, or deselect "New (Rm 8)"')
@@ -430,36 +491,20 @@ else:
 
 
 if new_dat is not None and old_dat is not None:
-    dat = combine_data_dicts(old_dat, new_dat)
-    # path1 = st.text_input(label="Enter folder path to save")
-    # filename1 = st.text_input(label = "Enter filename")
-    # fp1 = path1 +"/"+filename1+".xlsx"
+    dat,s1, s2  = combine_data_dicts(old_dat, new_dat)
 
-    # if len(filename1) > 0 and len(path1) > 0:
-    #     st.button(label = 'Save Merged Data', on_click = save_all_to_excel, args = (fp1, combined))
-
-    
 elif new_dat is not None:
     dat = new_dat
-    # path2 = st.text_input(label="Enter folder path to save")
-    # filename2 = st.text_input(label = "Enter filename")
-    # fp2 = path2 +'/'+filename2+'.xlsx'
-
-    # if len(filename2) > 0 and len(path2) > 0:
-    #     st.button(label = 'Save New System Data', on_click = save_all_to_excel, args = (fp2, new_dat))
-
+    s2 = dat['meta']['Subject'].values
+    s1 = []
 elif old_dat is not None:
     dat = old_dat
-    # path3 = st.text_input(label="Enter folder path to save")
-    # filename3 = st.text_input(label = "Enter filename")
-    # fp3 = path3+'/'+filename3 +'.xlsx'
-
-    # if len(filename3) > 0 and len(path3) > 0:
-    #     st.button(label = 'Save Old System Data', on_click = save_all_to_excel, args = (fp3, old_dat))
+    s1 = dat['meta']['Subject'].values
+    s2 = []
 else:
     dat = None
 
-# try:
+
 
 if dat is not None:
     buffer = io.BytesIO()
@@ -476,11 +521,17 @@ if dat is not None:
                 k2 = k
 
             ref.to_excel(writer, sheet_name = k2 + " Total")
+            center_excel_sheet(writer, k2 + " Total", ref.shape)
             dat['tables'][k].to_excel(writer, sheet_name = k2 + " Intervals")
+            center_with_lines_and_color(writer, k2 + " Intervals", dat['tables'][k], s1, s2)
+            
 
         dat['meta'] = dat['meta'][['Subject'] + [col for col in dat['meta'].columns if col != 'Subject']]      
         dat['meta'].to_excel(writer, sheet_name = 'Metadata')
+        center_excel_sheet(writer, 'Metadata', dat['meta'].shape)
 
+
+       
 
     st.download_button(
         label="Download Excel workbook",
