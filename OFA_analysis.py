@@ -176,7 +176,7 @@ def combine_sessions(a, b):
 
 def compile_excel(d):
     pm = [ 'Ambulatory Distance', 'Ambulatory Time', 'Ambulatory Counts', 'Vertical Counts',
-                'Vertical Time',  'Stereotypic Time', 'Stereotypics Counts', 'Resting Time', 'Jump Counts', 'Jump Time',
+                'Vertical Time',  'Stereotypic Time', 'Stereotypic Counts', 'Resting Time', 'Jump Counts', 'Jump Time',
                 'Ambulatory Episodes Average Speed',  'Ambulatory Episodes']
 
     meta_columns = [x for x in d.columns if x.split(' Bin ')[0] not in pm]
@@ -197,7 +197,7 @@ def compile_excel(d):
     bin_length = np.unique(meta['Session Duration'] / max(bin_ids))
 
     if len(bin_length) > 1:
-        print('Multiple time courses contained in data')
+        st.text('Multiple time courses contained in data')
     else:
         bin_length = bin_length[0]/60
 
