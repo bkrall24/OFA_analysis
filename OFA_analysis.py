@@ -1,3 +1,5 @@
+from contextlib import redirect_stderr
+from enum import unique
 import pandas as pd
 import numpy as np
 import streamlit as st
@@ -348,7 +350,24 @@ def center_excel_sheet(writer, sheet_name, shape):
     # Apply the cell format to the entire sheet
     worksheet.set_column(0, num_cols - 1, cell_format=center_alignment)
 
+def center_add_lines(writer, sheet_name, df):
+    workbook  = writer.book
+    worksheet = writer.sheets[sheet_name]
+    border_format = workbook.add_format({'right': 1, 'border_color': 'black', 'align': 'center', 'valign': 'vcenter'})
 
+    num_rows, num_cols = df.shape
+    center_alignment = workbook.add_format({'align': 'center', 'valign': 'vcenter'})
+
+    # Apply the cell format to the entire sheet
+    worksheet.set_column(0, num_cols - 1, cell_format=center_alignment)
+    if isinstance(ref.columns, pd.MultiIndex):
+        ch = np.diff([int(x.split(" ")[1]) for x in df.columns.get_level_values(0)])
+
+        bold_lines = np.argwhere(ch).flatten().tolist()
+        for l in bold_lines:
+            worksheet.set_column(l+1, l+1, cell_format = border_format)
+            #     empty_col = pd.MultiIndex.from_tuples([(' ', ' ')], names=('Session', 'Group'))
+            #     ref = pd.concat([ref.loc[:, ('Session 1', slice(None))], pd.DataFrame(columns=empty_col), ref.loc[:, ('Session 2', slice(None))]], axis=1)
 
 def center_with_lines_and_color(writer, sheet_name, df, s1, s2):
     workbook  = writer.book
@@ -380,6 +399,45 @@ def center_with_lines_and_color(writer, sheet_name, df, s1, s2):
             
         if sub in s2:
             worksheet.write(1, ind+1,  sub, orange_format)
+
+
+
+def confirm_matching_data(dat, s1, s2):
+
+    mismatched = {}
+    missing_totals = {}
+    all_sub = dat['meta']['Subject'].values
+    for k in dat['tables']:
+        subs = dat['tables'][k].columns.get_level_values('Subject').values
+        missing = [sub for sub in subs if sub not in all_sub]
+        if len(missing) > 0:
+            mismatched[k] = missing
+
+        subject_ids_by_group = {group: len(dat['tables'][k].columns.get_level_values('Subject')[dat['tables'][k].columns.get_level_values('Group') == group].tolist()) 
+                                for group in dat['tables'][k].columns.get_level_values('Group').unique()}
+        
+        
+        # missing_vals = len(all_sub) - dat['totals'][k].shape[1]
+        # if missing_vals != 0:
+        #     missing_totals[k]= missing_vals
+
+    # if (len(missing_totals)) > 0:
+    #     for k in missing_totals:
+    #         st.write(str(k)+" Totals is missing "+ str(missing_totals[k])+ " values")
+    
+    if (len(mismatched)) > 0:
+        for k in mismatched:
+            st.write(str(k)+" Intervals is missing "+ str(", ".join(mismatched[k]))+ " subjects")
+
+    st.write(str(len(all_sub))+" animals total")
+    st.write(str(len(s1))+ " animals from old system")  
+    st.write(str(len(s2))+ " animals from new system") 
+    for k in subject_ids_by_group:
+        st.write('Group '+str(k)+': '+str(subject_ids_by_group[k])+ " animals")
+    
+    st.write("Measurements included: "+', '.join(dat['tables'].keys()))
+
+    
 
 # def add_lines_sheet(writer, sheet_name, df):
 #     workbook  = writer.book
@@ -513,6 +571,8 @@ else:
 
 
 if dat is not None:
+    confirm_matching_data(dat, s1, s2)
+
     buffer = io.BytesIO()
     with pd.ExcelWriter(buffer, engine="xlsxwriter") as writer: 
 
@@ -526,8 +586,15 @@ if dat is not None:
             else:
                 k2 = k
 
+            ref.index = ref.index+1
+
+            # if isinstance(ref.columns, pd.MultiIndex):
+            #     empty_col = pd.MultiIndex.from_tuples([(' ', ' ')], names=('Session', 'Group'))
+            #     ref = pd.concat([ref.loc[:, ('Session 1', slice(None))], pd.DataFrame(columns=empty_col), ref.loc[:, ('Session 2', slice(None))]], axis=1)
             ref.to_excel(writer, sheet_name = k2 + " Total")
-            center_excel_sheet(writer, k2 + " Total", ref.shape)
+            center_add_lines(writer, k2 + " Total", ref)
+
+            # center_excel_sheet(writer, k2 + " Total", ref.shape)
             dat['tables'][k].to_excel(writer, sheet_name = k2 + " Intervals")
             center_with_lines_and_color(writer, k2 + " Intervals", dat['tables'][k], s1, s2)
             
@@ -546,6 +613,3 @@ if dat is not None:
         mime="application/vnd.ms-excel"
     )
 
-
-# except:
-#     st.header("Error occurred while attempting to save - Delete the excel file and ask Becca")
